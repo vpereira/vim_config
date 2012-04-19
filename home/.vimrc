@@ -1,46 +1,217 @@
-" Globally applicable settings should be applied here, as well as anything else
-" that needs to be loaded before the config files get executed.
-
-" don't try to play nice with vi
+" Use Vim settings, rather then Vi settings (much better!).
+" This must be first, because it changes other options as a side effect.
 set nocompatible
 
-" allow buffers to be hidden when they're not saved
-set hidden
+" don't allow backspacing over everything in insert mode
+set backspace=
 
-" save the last 100 commands/search terms
-set history=100
+set nobackup
+set nowritebackup
+set history=50		" keep 50 lines of command line history
+set ruler		" show the cursor position all the time
+set showcmd		" display incomplete commands
+set incsearch		" do incremental searching
 
-" use ; for <Leader>
-let mapleader = ";"    
+" Don't use Ex mode, use Q for formatting
+map Q gq
 
-"" shortmess settings:
-" f - use "(3 of 5)" instead of "(file 3 of 5)"
-" i - use "[noeol]" instead of "[Incomplete last line]"
-" l - use "999L, 888C" instead of "999 lines, 888 characters"
-" m - use "[+]" instead of "[Modified]"
-" n - use "[New]" instead of "[New File]"
-" r - use "[RO]" instead of "[readonly]"
-" x - use "[dos]" instead of "[dos format]", "[unix]" instead of "[unix
-" format]", and "[mac]" instead of "[mac format]"
-" t - truncate file message at the start if it is too long to fit on the
-" command-line, "<" will appear in the left most column.
-" T - trunctate other messages in the middle if they are too long to fit on
-" the command line. "..." will appear in the middle.
-" I - don't give the intro message when starting Vim.
-set shortmess=filmnrxtTI
+" This is an alternative that also works in block mode, but the deleted
+" text is lost and it only works for putting the current register.
+"vnoremap p "_dp
 
-" turn filetype settings off so that stuff gets loaded from pathogen
-filetype off
+" Switch syntax highlighting on, when the terminal has colors
+" Also switch on highlighting the last used search pattern.
+if (&t_Co > 2 || has("gui_running")) && !exists("syntax_on")
+  syntax on
+  set nohlsearch
+endif
 
-" stop dinging, please
-set noerrorbells
+" Only do this part when compiled with support for autocommands.
+if has("autocmd")
 
-" use pathogen to load plugins/etc.
-call pathogen#runtime_append_all_bundles()
+  " Enable file type detection.
+  " Use the default filetype settings, so that mail gets 'tw' set to 72,
+  " 'cindent' is on in C files, etc.
+  " Also load indent files, to automatically do language-dependent indenting.
+  filetype plugin indent on
 
-" turn on all filetype settings, syntax, etc.
-filetype plugin indent on
-syntax on
+  " Put these in an autocmd group, so that we can delete them easily.
+  augroup vimrcEx
+  au!
 
-" load everything else in its own config file
-runtime! config/**/*
+  " For all text files set 'textwidth' to 78 characters.
+  autocmd FileType text setlocal textwidth=78
+
+  " When editing a file, always jump to the last known cursor position.
+  " Don't do it when the position is invalid or when inside an event handler
+  " (happens when dropping a file on gvim).
+  autocmd BufReadPost *
+    \ if line("'\"") > 0 && line("'\"") <= line("$") |
+    \   exe "normal g`\"" |
+    \ endif
+
+  augroup END
+
+else
+
+  set autoindent		" always set autoindenting on
+
+endif " has("autocmd")
+
+" if has("folding")
+  " set foldenable
+  " set foldmethod=syntax
+  " set foldlevel=1
+  " set foldnestmax=2
+  " set foldtext=strpart(getline(v:foldstart),0,50).'\ ...\ '.substitute(getline(v:foldend),'^[\ #]*','','g').'\ '
+" endif
+
+" Softtabs, 2 spaces
+set tabstop=2
+set shiftwidth=2
+set expandtab
+
+" Always display the status line
+set laststatus=2
+
+" ] is the leader character
+let mapleader = "]"
+
+" Edit the README_FOR_APP (makes :R commands work)
+map <Leader>R :e doc/README_FOR_APP<CR>
+
+" Hide search highlighting
+map <Leader>l :set invhls <CR>
+
+" Opens an edit command with the path of the currently edited file filled in
+" Normal mode: <Leader>e
+map <Leader>e :e <C-R>=expand("%:p:h") . "/" <CR>
+
+" Opens a tab edit command with the path of the currently edited file filled in
+" Normal mode: <Leader>t
+map <Leader>te :tabe <C-R>=expand("%:p:h") . "/" <CR>
+map <Leader>tn :tabn
+map <Leader>tp :tabp
+" Inserts the path of the currently edited file into a command
+" Command mode: Ctrl+P
+cmap <C-P> <C-R>=expand("%:p:h") . "/" <CR>
+
+" Maps autocomplete to tab
+imap <Tab> <C-P>
+
+" Duplicate a selection
+" Visual mode: D
+"vmap D y'>p
+
+" For Haml
+au! BufRead,BufNewFile *.haml         setfiletype haml
+
+" No Help, please
+nmap <F1> <Esc>
+
+" Press ^F from insert mode to insert the current file name
+imap <C-F> <C-R>=expand("%")<CR>
+
+" Press Shift+P while in visual mode to replace the selection without
+" overwriting the default register
+vmap P p :call setreg('"', getreg('0')) <CR>
+
+" Display extra whitespace
+set list listchars=tab:»·,trail:·
+
+" Edit routes
+command! Rroutes :e config/routes.rb
+command! RTroutes :tabe config/routes.rb
+
+" Local config
+if filereadable(".vimrc.local")
+  source .vimrc.local
+endif
+
+" Use Ack instead of Grep when available
+if executable("ack")
+  set grepprg=ack\ -H\ --nogroup\ --nocolor
+endif
+
+" Color scheme
+"colorscheme vividchalk
+"highlight NonText guibg=#060606
+"highlight Folded  guibg=#0A0A0A guifg=#9090D0
+
+" Numbers
+"set number
+"set numberwidth=5
+if has("gui_running")
+          colorscheme ir_black
+          set guifont=Monospace\ 10  " use this font
+          set lines=50       " height = 50 lines
+          set columns=100        " width = 100 columns
+          set selectmode=mouse,key,cmd
+          set keymodel=
+        else
+          colorscheme elflord
+          set background=dark
+endif
+
+" Snippets are activated by Shift+Tab
+let g:snippetsEmu_key = "<S-Tab>"
+
+" Tab completion options
+set wildmode=list:longest,list:full
+set complete=.,w,t
+
+" Tags
+"let g:Tlist_Ctags_Cmd="ctags --exclude='*.js'"
+let g:ctags_args=" --exclude='*.js'"
+let generate_tags=1
+let g:ctags_title=1
+" Window navigation
+nmap <C-J> <C-W><C-J>
+nmap <C-K> <C-W><C-K>
+
+" Rails configuration
+autocmd User Rails Rnavcommand step features/step_definitions -glob=**/* -suffix=_steps.rb
+autocmd User Rails Rnavcommand config config -glob=**/* -suffix=.rb -default=routes
+autocmd User Rails map <Leader>p :Rstep 
+autocmd User Rails map <Leader>sp :RSstep 
+autocmd User Rails map <Leader>tp :RTstep 
+autocmd User Rails map <Leader>m :Rmodel 
+autocmd User Rails map <Leader>c :Rcontroller 
+autocmd User Rails map <Leader>v :Rview 
+autocmd User Rails map <Leader>u :Runittest 
+autocmd User Rails map <Leader>f :Rfunctionaltest 
+autocmd User Rails map <Leader>i :Rintegrationtest 
+autocmd User Rails map <Leader>h :Rhelper 
+autocmd User Rails map <Leader>tm :RTmodel 
+autocmd User Rails map <Leader>tc :RTcontroller 
+autocmd User Rails map <Leader>tv :RTview 
+autocmd User Rails map <Leader>tu :RTunittest 
+autocmd User Rails map <Leader>tf :RTfunctionaltest 
+autocmd User Rails map <Leader>ti :RTintegrationtest 
+autocmd User Rails map <Leader>sm :RSmodel 
+autocmd User Rails map <Leader>sc :RScontroller 
+autocmd User Rails map <Leader>sv :RSview 
+autocmd User Rails map <Leader>su :RSunittest 
+autocmd User Rails map <Leader>sf :RSfunctionaltest 
+autocmd User Rails map <Leader>si :RSintegrationtest 
+autocmd User Rails map <Leader>g :Rconfig 
+autocmd User Rails map <Leader>sg :RSconfig 
+autocmd User Rails map <Leader>tg :RTconfig 
+
+"set number and nonumber
+map <leader>n :set number<CR>
+map <leader>nn :set nonumber<CR>
+autocmd FileType ruby,eruby set omnifunc=rubycomplete#Complete 
+"nnoremap <Left> :echoe "Use h"<CR>
+"nnoremap <Right> :echoe "Use l"<CR>
+"nnoremap <Up> :echoe "Use k"<CR>
+"nnoremap <Down> :echoe "Use j"<CR>
+" NerdTree
+"autocmd VimEnter * NERDTree
+"autocmd BufEnter * NERDTreeMirror
+map <leader>tr :NERDTree<cr>
+map <leader>tm :NERDTreeMirror<cr>
+let NERDTreeWinPos="left"
+let NERDTreeWinSize=28
+let NERDTreeShowHidden=0
+
